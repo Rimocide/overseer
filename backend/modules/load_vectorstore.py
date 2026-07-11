@@ -3,6 +3,7 @@ import io
 import tarfile
 import hashlib
 import requests
+import time
 import pathspec
 from pathlib import Path
 from dotenv import load_dotenv
@@ -15,46 +16,66 @@ import tree_sitter_go as tsgo
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
-from pinecone import Pinecone
+from pinecone import Pinecone, ServerlessSpec
 
 load_dotenv()
 
 class UniversalCodeRAGPipeline:
-    def __init__(self, github_token: str, pinecone_index_name: str):
+    def __init__(self, github_token: str, pinecone_index_name: str, pinecone_api_key: str):
         self.github_token = github_token
-        self.embed_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        self.summary_model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.2)
+        self.embed_model = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", task_type="retrieval_document", output_dimensionality=768)
+        self.summary_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
 
         pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+        existing_indexes = [idx.name for idx in pc.list_indexes()]
+
+        if pinecone_index_name not in existing_indexes:
+            print(f"Index '{pinecone_index_name}' not found. Initializing serverless instance...")
+            pc.create_index(
+            name=pinecone_index_name,
+            dimension=768,  
+            metric="cosine",
+            spec=ServerlessSpec(
+            cloud="aws",
+            region="us-east-1"
+                    )
+            )
+
+        while not pc.describe_index(pinecone_index_name).status['ready']:
+            print(f"Waiting for index '{pinecone_index_name}' to become active...")
+            time.sleep(2)
+                        
+        print(f"Index '{pinecone_index_name}' is fully ready.")
+        
         self.index = pc.Index(pinecone_index_name)
 
         # registers languages and maps extension types to their specific tree-sitter node targets
         self.LANGUAGE_REGISTRY = {
-            ".py": {
-                "language": Language(tspython.language()),
-                "target_nodes": ["function_definition", "class_definition"]
-            },
-            ".js": {
-                "language": Language(tsjavascript.language()),
-                "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
-            },
-            ".jsx": {
-                "language": Language(tsjavascript.language()),
-                "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
-            },
-            ".ts": {
-                "language": Language(tstypescript.language_typescript()),
-                "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
-            },
-            ".tsx": {
-                "language": Language(tstypescript.language_tsx()),
-                "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
-            },
-            ".go": {
-                "language": Language(tsgo.language()),
-                "target_nodes": ["function_declaration", "method_declaration", "type_declaration"]
-            }
-        }
+                    ".py": {
+                        "language": Language(tspython.language()), # Wraps PyCapsule cleanly
+                        "target_nodes": ["function_definition", "class_definition"]
+                    },
+                    ".js": {
+                        "language": Language(tsjavascript.language()),
+                        "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
+                    },
+                    ".jsx": {
+                        "language": Language(tsjavascript.language()),
+                        "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
+                    },
+                    ".ts": {
+                        "language": Language(tstypescript.language_typescript()),
+                        "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
+                    },
+                    ".tsx": {
+                        "language": Language(tstypescript.language_tsx()),
+                        "target_nodes": ["function_declaration", "method_definition", "arrow_function", "class_declaration"]
+                    },
+                    ".go": {
+                        "language": Language(tsgo.language()),
+                        "target_nodes": ["function_declaration", "method_declaration", "type_declaration"]
+                    }
+                }
 
         self.parser = Parser()
 
@@ -100,20 +121,20 @@ class UniversalCodeRAGPipeline:
         if not config:
             return [source_code]
 
-        self.parser.set_language(config["language"])
-        tree = self.parser.parse(bytes(source_code, "utf8"))
+        parser = Parser(config["language"])
+        tree = parser.parse(bytes(source_code, "utf8"))
         root_node = tree.root_node
         chunks = []
-
+        
         def traverse(node):
             if node.type in config["target_nodes"]:
                 chunk = source_code[node.start_byte:node.end_byte]
                 chunks.append(chunk)
                 return
-
+        
             for child in node.children:
                 traverse(child)
-
+        
         traverse(root_node)
         return chunks if chunks else [source_code]
 
@@ -130,7 +151,21 @@ class UniversalCodeRAGPipeline:
         {source_code[:4000]}
         """
         response = self.summary_model.invoke(prompt)
-        return response.content
+       
+        content = response.content
+                
+
+        if isinstance(content, list):
+            text_parts = []
+            for part in content:
+                if isinstance(part, dict) and "text" in part:
+                    text_parts.append(part["text"])
+                elif isinstance(part, str):
+                    text_parts.append(part)
+            return "".join(text_parts).strip()
+                    
+        # Fallback to standard string cast if it's already a single string
+        return str(content).strip()
 
     def process_repository(self, owner: str, repo: str):
         """

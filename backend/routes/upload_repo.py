@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, status
+from fastapi import APIRouter, BackgroundTasks, status, Header, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from services.repo_service import RepoIndexService
@@ -12,16 +12,16 @@ class RepoIndexRequest(BaseModel):
     repo: str
 
 @router.post("/index_repository/", status_code=status.HTTP_202_ACCEPTED)
-async def index_repository(request: RepoIndexRequest, background_tasks: BackgroundTasks):
+async def index_repository(request: RepoIndexRequest, background_tasks: BackgroundTasks, x_github_token: str = Header(None)):
     try:
+        if not x_github_token:
+            raise HTTPException(status_code=401, detail="Missing GitHub Authorization Token.")
         logger.info(f"Received indexing request for: {request.owner}/{request.repo}")
-
-        github_token="Will Add Logic Later"
 
         repo_service.trigger_sync_index(
             owner=request.owner,
             repo=request.repo,
-            github_token=github_token,
+            github_token=x_github_token,
             background_tasks=background_tasks
         )
 
@@ -29,6 +29,9 @@ async def index_repository(request: RepoIndexRequest, background_tasks: Backgrou
             "status": "Accepted",
             "message": f"Repository ingestion for {request.owner}/{request.repo} initialized"
         }
+
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.exception("failed to initialize repository indexing lifecycle")
         return JSONResponse(status_code=500, content={"error": "internal server error"})

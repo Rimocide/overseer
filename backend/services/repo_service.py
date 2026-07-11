@@ -6,13 +6,14 @@ class RepoIndexService:
     def trigger_sync_index(self, owner: str, repo: str, github_token: str, background_tasks: BackgroundTasks):
         pipeline = UniversalCodeRAGPipeline(
             github_token=github_token,
-            pinecone_index_name="githubAiIndex"
+            pinecone_index_name="github-ai-index",
+            pinecone_api_key="Resolved Soon"
         )
 
         background_tasks.add_task(self._run_pipeline_worker, pipeline, owner, repo)
 
     def _run_pipeline_worker(self, pipeline: UniversalCodeRAGPipeline, owner: str, repo: str):
-        try: 
+        try:
             for status_update in pipeline.process_repository(owner, repo):
                 logger.info(f"[Pipeline Worker]: {status_update}")
         except Exception as e:
