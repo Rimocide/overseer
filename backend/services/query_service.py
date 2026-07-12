@@ -14,8 +14,8 @@ def _format_docs(docs):
 
 class CodeQueryService:
     def __init__(self):
-        self.index_name="githubAiIndex"
-        self.embeddings=GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        self.index_name="github-ai-index"
+        self.embeddings=GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", output_dimensionality=768)
 
     def ask_codebase(self, question: str) -> dict:
         try:

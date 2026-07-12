@@ -113,6 +113,7 @@ const markdownComponents = {
 export default function WorkspaceChat() {
   const [showConfig, setShowConfig] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [envReady, setEnvReady] = useState(false);
   const [config, setConfig] = useState({
     owner: '',
     repo: '',
@@ -127,8 +128,19 @@ export default function WorkspaceChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    fetch('/api/index-repo')
+      .then(res => res.json())
+      .then(data => {
+        if (data.hasEnv) setEnvReady(true);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const canSkip = envReady || Boolean(config.geminiKey && config.pineconeKey && config.githubToken);
 
   const runIngestionPipeline = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,9 +225,9 @@ export default function WorkspaceChat() {
 
           <form onSubmit={runIngestionPipeline} className="space-y-4 bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800/50 backdrop-blur-xl">
             <div className="space-y-3">
-              <input type="password" value={config.geminiKey} onChange={e => setConfig({...config, geminiKey: e.target.value})} placeholder="Gemini API Key" className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
-              <input type="password" value={config.pineconeKey} onChange={e => setConfig({...config, pineconeKey: e.target.value})} placeholder="Pinecone API Key" className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
-              <input type="password" value={config.githubToken} onChange={e => setConfig({...config, githubToken: e.target.value})} placeholder="GitHub PAT Token" className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
+              <input type="password" value={config.geminiKey} onChange={e => setConfig({...config, geminiKey: e.target.value})} placeholder="Gemini API Key (Leave blank for .env)" className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
+              <input type="password" value={config.pineconeKey} onChange={e => setConfig({...config, pineconeKey: e.target.value})} placeholder="Pinecone API Key (Leave blank for .env)" className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
+              <input type="password" value={config.githubToken} onChange={e => setConfig({...config, githubToken: e.target.value})} placeholder="GitHub PAT Token (Leave blank for .env)" className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
               <div className="flex gap-3">
                 <input value={config.owner} onChange={e => setConfig({...config, owner: e.target.value})} placeholder="Repo Owner" className="w-1/2 bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
                 <input value={config.repo} onChange={e => setConfig({...config, repo: e.target.value})} placeholder="Repository" className="w-1/2 bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fe7f2d] focus:ring-1 focus:ring-[#fe7f2d] transition-all placeholder:text-zinc-600" />
@@ -227,7 +239,7 @@ export default function WorkspaceChat() {
               {loading ? 'Ingesting Repository...' : 'Build Vector Context'}
             </button>
             
-            <button type="button" onClick={() => setShowConfig(false)} className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white py-3 rounded-xl font-medium text-sm transition-all duration-300">
+            <button type="button" onClick={() => setShowConfig(false)} disabled={!canSkip} className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white py-3 rounded-xl font-medium text-sm transition-all duration-300 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed">
               Skip directly to Chat <ArrowRight className="w-4 h-4" />
             </button>
           </form>

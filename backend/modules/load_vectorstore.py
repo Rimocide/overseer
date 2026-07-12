@@ -21,19 +21,25 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 class UniversalCodeRAGPipeline:
-    def __init__(self, github_token: str, pinecone_index_name: str, pinecone_api_key: str):
-        self.github_token = github_token
+    def __init__(self, github_token: str = None, pinecone_index_name: str = "code-rag", pinecone_api_key: str = None, gemini_api_key: str = None):
+        self.github_token = github_token or os.getenv("GITHUB_TOKEN")
+        pinecone_key = pinecone_api_key or os.getenv("PINECONE_API_KEY")
+        gemini_key = gemini_api_key or os.getenv("GOOGLE_API_KEY")
+        
+        if gemini_key:
+            os.environ["GOOGLE_API_KEY"] = gemini_key
+
         self.embed_model = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", task_type="retrieval_document", output_dimensionality=768)
         self.summary_model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
 
-        pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+        pc = Pinecone(api_key=pinecone_key)
         existing_indexes = [idx.name for idx in pc.list_indexes()]
 
         if pinecone_index_name not in existing_indexes:
             print(f"Index '{pinecone_index_name}' not found. Initializing serverless instance...")
             pc.create_index(
             name=pinecone_index_name,
-            dimension=768,  
+            dimension=768,
             metric="cosine",
             spec=ServerlessSpec(
             cloud="aws",
@@ -44,15 +50,14 @@ class UniversalCodeRAGPipeline:
         while not pc.describe_index(pinecone_index_name).status['ready']:
             print(f"Waiting for index '{pinecone_index_name}' to become active...")
             time.sleep(2)
-                        
+
         print(f"Index '{pinecone_index_name}' is fully ready.")
-        
+
         self.index = pc.Index(pinecone_index_name)
 
-        # registers languages and maps extension types to their specific tree-sitter node targets
         self.LANGUAGE_REGISTRY = {
                     ".py": {
-                        "language": Language(tspython.language()), # Wraps PyCapsule cleanly
+                        "language": Language(tspython.language()), 
                         "target_nodes": ["function_definition", "class_definition"]
                     },
                     ".js": {
@@ -125,16 +130,16 @@ class UniversalCodeRAGPipeline:
         tree = parser.parse(bytes(source_code, "utf8"))
         root_node = tree.root_node
         chunks = []
-        
+
         def traverse(node):
             if node.type in config["target_nodes"]:
                 chunk = source_code[node.start_byte:node.end_byte]
                 chunks.append(chunk)
                 return
-        
+
             for child in node.children:
                 traverse(child)
-        
+
         traverse(root_node)
         return chunks if chunks else [source_code]
 
@@ -151,9 +156,9 @@ class UniversalCodeRAGPipeline:
         {source_code[:4000]}
         """
         response = self.summary_model.invoke(prompt)
-       
+
         content = response.content
-                
+
 
         if isinstance(content, list):
             text_parts = []
@@ -163,15 +168,10 @@ class UniversalCodeRAGPipeline:
                 elif isinstance(part, str):
                     text_parts.append(part)
             return "".join(text_parts).strip()
-                    
-        # Fallback to standard string cast if it's already a single string
+
         return str(content).strip()
 
     def process_repository(self, owner: str, repo: str):
-        """
-        processes the full ingestion lifecycle.
-        yields logging status strings designed for seamless streaming in frontends like streamlit.
-        """
         repo_name = f"{owner}/{repo}"
         yield f"Connecting to GitHub and streaming tarball for {repo_name}..."
 

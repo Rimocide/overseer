@@ -1,16 +1,25 @@
 import { NextRequest } from "next/server";
 
+export async function GET() {
+  const hasEnv = Boolean(
+    process.env.GITHUB_OWNER &&
+    process.env.GITHUB_REPO &&
+    process.env.GITHUB_TOKEN &&
+    process.env.GEMINI_API_KEY &&
+    process.env.PINECONE_API_KEY
+  );
+  return Response.json({ hasEnv });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    console.log("Next.js received configuration:", body);
-
-    const owner = body.owner;
-    const repo = body.repo;
-    const githubToken = body.githubToken;
-    const geminiKey = body.geminiKey;
-    const pineconeKey = body.pineconeKey;
+    const owner = body.owner || process.env.GITHUB_OWNER;
+    const repo = body.repo || process.env.GITHUB_REPO;
+    const githubToken = body.githubToken || process.env.GITHUB_TOKEN;
+    const geminiKey = body.geminiKey || process.env.GEMINI_API_KEY;
+    const pineconeKey = body.pineconeKey || process.env.PINECONE_API_KEY;
 
     const pydanticPayload = {
       owner: owner,
@@ -35,4 +44,3 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Ingestion service offline" }, { status: 500 });
   }
 }
-

@@ -22,12 +22,12 @@ Strict Guidelines:
 
 human_query_string= "Question about the codebase: {question}"
 
-GOOGLE_API_KEY=os.getenv("GOOGLE_API_KEY")
-
-def get_llm_chain():
+def get_llm_chain(gemini_api_key: str = None):
+    api_key = gemini_api_key or os.getenv("GOOGLE_API_KEY")
+    
     llm=ChatGoogleGenerativeAI(
-        api_key=GOOGLE_API_KEY,
-        model="gemini-3.5-flash"
+        api_key=api_key,
+        model="gemini-2.5-flash"
     )
 
     chat_prompt_template=ChatPromptTemplate.from_messages([
