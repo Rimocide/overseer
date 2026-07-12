@@ -25,22 +25,35 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
   };
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-zinc-800">
-      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-        <span className="text-xs text-zinc-500 font-mono">{language}</span>
-        <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-200 transition-colors">
+    <div className="my-4 rounded-xl overflow-hidden border border-zinc-800/60 bg-[#121214] shadow-sm max-w-full">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[#18181b] border-b border-zinc-800/60">
+        <span className="text-xs text-zinc-400 font-mono lowercase">{language || 'text'}</span>
+        <button onClick={handleCopy} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 transition-colors">
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <SyntaxHighlighter
-        language={language}
-        style={oneDark}
-        PreTag="div"
-        customStyle={{ margin: 0, padding: '1rem', background: '#18181b', fontSize: '13px', lineHeight: 1.6 }}
-      >
-        {code}
-      </SyntaxHighlighter>
+      {}
+      <div className="overflow-x-auto max-w-full">
+        <SyntaxHighlighter
+          language={language}
+          style={oneDark}
+          PreTag="div"
+          customStyle={{
+            margin: 0,
+            padding: '1rem',
+            background: 'transparent', 
+            fontSize: '13px',
+            lineHeight: 1.6,
+            minWidth: 'fit-content'
+          }}
+          codeTagProps={{
+            style: { backgroundColor: 'transparent', fontFamily: 'inherit' } 
+          }}
+        >
+          {code}
+        </SyntaxHighlighter>
+      </div>
     </div>
   );
 }
@@ -54,9 +67,10 @@ const markdownComponents = {
     const code = String(codeProps.children ?? '').replace(/\n$/, '');
     return <CodeBlock language={language} code={code} />;
   },
-  code({ children }: any) {
+  code({ children, ...props }: any) {
+
     return (
-      <code className="bg-zinc-800 text-zinc-100 rounded px-1.5 py-0.5 text-[13px] font-mono">
+      <code className="bg-zinc-800/40 border border-zinc-800/60 text-zinc-200 rounded px-1.5 py-0.5 text-[13px] font-mono" {...props}>
         {children}
       </code>
     );
@@ -97,7 +111,7 @@ const markdownComponents = {
   },
   table({ children }: any) {
     return (
-      <div className="overflow-x-auto my-3">
+      <div className="overflow-x-auto my-3 max-w-full">
         <table className="min-w-full border border-zinc-800 text-sm">{children}</table>
       </div>
     );
@@ -145,7 +159,7 @@ export default function WorkspaceChat() {
   const runIngestionPipeline = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const res = await fetch('/api/index-repo', {
         method: 'POST',
@@ -213,7 +227,7 @@ export default function WorkspaceChat() {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#09090b] text-zinc-50 p-4 font-sans">
         <Toaster position="top-center" richColors theme="dark" />
-        
+
         <div className="max-w-md w-full space-y-8">
           <div className="text-center space-y-2">
             <div className="mx-auto bg-[#233d4d] w-12 h-12 flex items-center justify-center rounded-xl mb-6 shadow-lg shadow-[#233d4d]/20">
@@ -238,7 +252,7 @@ export default function WorkspaceChat() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
               {loading ? 'Ingesting Repository...' : 'Build Vector Context'}
             </button>
-            
+
             <button type="button" onClick={() => setShowConfig(false)} disabled={!canSkip} className="w-full flex items-center justify-center gap-2 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white py-3 rounded-xl font-medium text-sm transition-all duration-300 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed">
               Skip directly to Chat <ArrowRight className="w-4 h-4" />
             </button>
@@ -251,7 +265,7 @@ export default function WorkspaceChat() {
   return (
     <div className="flex flex-col h-screen w-full bg-[#09090b] text-zinc-100 font-sans selection:bg-[#fe7f2d]/30">
       <Toaster position="top-center" richColors theme="dark" />
-      
+
       <header className="flex-none flex items-center justify-between px-6 py-4 border-b border-zinc-800/60 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="bg-[#233d4d] p-1.5 rounded-lg">
@@ -284,7 +298,7 @@ export default function WorkspaceChat() {
                 <div className={`flex-none w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${m.role === 'user' ? 'bg-zinc-800 border border-zinc-700' : 'bg-[#233d4d]'}`}>
                   {m.role === 'user' ? <User className="w-5 h-5 text-zinc-300" /> : <Sparkles className="w-5 h-5 text-white" />}
                 </div>
-                <div className="flex-1 space-y-2 mt-1">
+                <div className="flex-1 min-w-0 space-y-2 mt-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
                     {m.role === 'user' ? 'You' : 'Workspace Code Agent'}
                   </span>
@@ -314,15 +328,15 @@ export default function WorkspaceChat() {
       <div className="fixed bottom-0 w-full bg-gradient-to-t from-[#09090b] via-[#09090b] to-transparent pb-6 pt-12">
         <div className="max-w-3xl mx-auto px-4">
           <form onSubmit={handleSendMessage} className="relative flex items-center shadow-2xl">
-            <input 
-              value={chatInput} 
-              onChange={e => setChatInput(e.target.value)} 
-              placeholder="Ask anything..." 
+            <input
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              placeholder="Ask anything..."
               className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-5 pr-14 py-4 text-[15px] text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700 transition-all shadow-sm"
               disabled={isLoading}
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading || !chatInput.trim()}
               className="absolute right-2 p-2 bg-[#233d4d] hover:bg-[#fe7f2d] disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl transition-colors duration-200 cursor-pointer"
             >

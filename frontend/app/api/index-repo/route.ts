@@ -2,8 +2,6 @@ import { NextRequest } from "next/server";
 
 export async function GET() {
   const hasEnv = Boolean(
-    process.env.GITHUB_OWNER &&
-    process.env.GITHUB_REPO &&
     process.env.GITHUB_TOKEN &&
     process.env.GEMINI_API_KEY &&
     process.env.PINECONE_API_KEY

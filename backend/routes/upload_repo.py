@@ -33,6 +33,8 @@ async def index_repository(request: RepoIndexRequest, background_tasks: Backgrou
             owner=owner,
             repo=repo,
             github_token=token,
+            pinecone_key=request.pineconeKey,
+            gemini_key=request.geminiKey,
             background_tasks=background_tasks
         )
 
