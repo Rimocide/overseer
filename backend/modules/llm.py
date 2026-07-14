@@ -27,7 +27,7 @@ def get_llm_chain(gemini_api_key: str = None):
     
     llm=ChatGoogleGenerativeAI(
         api_key=api_key,
-        model="gemini-2.5-flash"
+        model="gemini-3.5-flash"
     )
 
     chat_prompt_template=ChatPromptTemplate.from_messages([
