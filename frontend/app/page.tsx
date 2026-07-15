@@ -42,13 +42,13 @@ function CodeBlock({ language, code }: { language: string; code: string }) {
           customStyle={{
             margin: 0,
             padding: '1rem',
-            background: 'transparent', 
+            background: 'transparent',
             fontSize: '13px',
             lineHeight: 1.6,
             minWidth: 'fit-content'
           }}
           codeTagProps={{
-            style: { backgroundColor: 'transparent', fontFamily: 'inherit' } 
+            style: { backgroundColor: 'transparent', fontFamily: 'inherit' }
           }}
         >
           {code}
@@ -216,7 +216,7 @@ export default function WorkspaceChat() {
         );
       }
     } catch {
-      toast.error("Lost connection to the workspace agent.");
+      toast.error("Lost connection to the Overseer.");
       setMessages(prev => prev.filter(m => !(m.id === assistantId && m.content === '')));
     } finally {
       setIsLoading(false);
@@ -233,7 +233,7 @@ export default function WorkspaceChat() {
             <div className="mx-auto bg-[#233d4d] w-12 h-12 flex items-center justify-center rounded-xl mb-6 shadow-lg shadow-[#233d4d]/20">
               <Database className="text-white w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-medium tracking-tight">Workspace Engine</h1>
+            <h1 className="text-2xl font-medium tracking-tight">The Overseer</h1>
             <p className="text-zinc-400 text-sm">Configure your ingestion targets or access the active vector space directly.</p>
           </div>
 
@@ -271,7 +271,7 @@ export default function WorkspaceChat() {
           <div className="bg-[#233d4d] p-1.5 rounded-lg">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
-          <span className="font-medium text-sm tracking-wide">Workspace AI</span>
+          <span className="font-medium text-sm tracking-wide">The Overseer</span>
           {(config.owner && config.repo) && (
             <span className="ml-2 text-xs px-2 py-1 bg-zinc-900 border border-zinc-800 rounded-md text-zinc-400">
               {config.owner}/{config.repo}
@@ -300,7 +300,7 @@ export default function WorkspaceChat() {
                 </div>
                 <div className="flex-1 min-w-0 space-y-2 mt-1">
                   <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    {m.role === 'user' ? 'You' : 'Workspace Code Agent'}
+                    {m.role === 'user' ? 'You' : 'The Overseer'}
                   </span>
                   <div className="text-[15px] leading-relaxed text-zinc-200">
                     <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
