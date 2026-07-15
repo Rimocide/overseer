@@ -19,8 +19,9 @@
   <a href="#getting-started">Getting Started</a>
 </p>
 
-<img width="800" height="450" alt="output" src="https://github.com/user-attachments/assets/dafab11a-3b10-44e0-b42b-e4eaab795d26" />
+<img width="640" height="360" alt="output" src="https://github.com/user-attachments/assets/fc10bf47-687e-4227-8e89-640efe7759b5" />
 
+<div align="center"><sub>Here's me generating the readme for this very repo using this project!</sub></div>
 </div>
 
 ---
@@ -79,7 +80,7 @@ You will need the following API keys ready. Create a `.env` file in your backend
 
 - `GEMINI_API_KEY`
 - `PINECONE_API_KEY`
-- `GITHUB_PAT` (Personal Access Token)
+- `GITHUB_TOKEN` (Personal Access Token)
 
 ### 1. Backend Setup
 
